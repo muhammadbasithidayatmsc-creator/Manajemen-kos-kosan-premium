@@ -1,0 +1,6 @@
+{
+  "name": "KOS MANAGEMENT",
+  "description": "Sistem Manajemen Kos Modern & Profesional untuk Pengelolaan Properti, Kamar, Penghuni, Tagihan, WhatsApp, dan Laporan Keuangan",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
