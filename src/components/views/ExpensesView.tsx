@@ -484,8 +484,13 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                         {property?.name || '-'}
                       </td>
 
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 max-w-xs">
-                        {exp.description}
+                      <td className="py-3.5 px-4 max-w-xs">
+                        <div className="font-semibold text-slate-900">{exp.description}</div>
+                        {exp.createdBy && (
+                          <div className="text-[10px] text-slate-400 font-normal">
+                            Oleh: {exp.createdBy}
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 font-black text-rose-600 font-mono">

@@ -540,8 +540,13 @@ export const BillsView: React.FC<BillsViewProps> = ({
 
                   return (
                     <tr key={bill.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-indigo-600">
-                        {bill.invoiceNumber}
+                      <td className="py-3.5 px-4">
+                        <div className="font-mono font-bold text-indigo-600">{bill.invoiceNumber}</div>
+                        {bill.createdBy && (
+                          <div className="text-[10px] text-slate-400 font-sans font-normal">
+                            Oleh: {bill.createdBy}
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">

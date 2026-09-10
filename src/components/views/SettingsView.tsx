@@ -94,6 +94,7 @@ export const SettingsView: React.FC = () => {
   // New Admin Form
   const [newAdminData, setNewAdminData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     phone: '',
@@ -104,6 +105,7 @@ export const SettingsView: React.FC = () => {
   // Edit Admin Form
   const [editAdminData, setEditAdminData] = useState({
     name: '',
+    username: '',
     email: '',
     phone: '',
     status: 'Aktif' as 'Aktif' | 'Nonaktif',
@@ -265,6 +267,7 @@ export const SettingsView: React.FC = () => {
   const handleOpenAddAdmin = () => {
     setNewAdminData({
       name: '',
+      username: '',
       email: '',
       password: '',
       phone: '',
@@ -276,7 +279,11 @@ export const SettingsView: React.FC = () => {
 
   const handleCreateAdmin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdminData.name.trim() || !newAdminData.email.trim()) {
+    const cleanName = newAdminData.name.trim();
+    const cleanUsername = (newAdminData.username.trim() || newAdminData.email.split('@')[0]).toLowerCase();
+    const cleanEmail = newAdminData.email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail) {
       showToast('error', 'Nama lengkap dan email akun admin wajib diisi.');
       return;
     }
@@ -284,17 +291,25 @@ export const SettingsView: React.FC = () => {
       showToast('error', 'Password minimal 4 karakter.');
       return;
     }
-    const exists = adminAccounts.some(
-      (a) => a.email.toLowerCase() === newAdminData.email.trim().toLowerCase()
+    const existsEmail = adminAccounts.some(
+      (a) => a.email.toLowerCase() === cleanEmail
     );
-    if (exists) {
+    if (existsEmail) {
       showToast('error', 'Email ini sudah terdaftar untuk akun pengelola lain.');
+      return;
+    }
+    const existsUsername = adminAccounts.some(
+      (a) => a.username?.toLowerCase() === cleanUsername
+    );
+    if (existsUsername) {
+      showToast('error', 'Username ini sudah digunakan. Silakan pilih username lain.');
       return;
     }
 
     addAdminAccount({
-      name: newAdminData.name.trim(),
-      email: newAdminData.email.trim().toLowerCase(),
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
       password: newAdminData.password.trim(),
       phone: newAdminData.phone.trim() || undefined,
       role: newAdminData.role,
@@ -307,6 +322,7 @@ export const SettingsView: React.FC = () => {
     setEditingAdmin(acc);
     setEditAdminData({
       name: acc.name,
+      username: acc.username || acc.email.split('@')[0],
       email: acc.email,
       phone: acc.phone || '',
       status: acc.status,
@@ -316,13 +332,27 @@ export const SettingsView: React.FC = () => {
   const handleSaveEditAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAdmin) return;
-    if (!editAdminData.name.trim() || !editAdminData.email.trim()) {
+    const cleanName = editAdminData.name.trim();
+    const cleanUsername = (editAdminData.username.trim() || editAdminData.email.split('@')[0]).toLowerCase();
+    const cleanEmail = editAdminData.email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail) {
       showToast('error', 'Nama dan email wajib diisi.');
       return;
     }
+    // Check if username is taken by another account
+    const existsUsername = adminAccounts.some(
+      (a) => a.id !== editingAdmin.id && a.username?.toLowerCase() === cleanUsername
+    );
+    if (existsUsername) {
+      showToast('error', 'Username ini sudah dipakai oleh akun lain.');
+      return;
+    }
+
     updateAdminAccount(editingAdmin.id, {
-      name: editAdminData.name.trim(),
-      email: editAdminData.email.trim().toLowerCase(),
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
       phone: editAdminData.phone.trim() || undefined,
       status: editAdminData.status,
     });
@@ -956,6 +986,11 @@ export const SettingsView: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                        {acc.username && (
+                          <span className="inline-flex items-center font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md text-[11px]">
+                            @{acc.username}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1 font-mono">
                           <Mail className="w-3.5 h-3.5 text-slate-400" />
                           {acc.email}
@@ -1160,6 +1195,22 @@ export const SettingsView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Username Login <span className="text-slate-400 font-normal">(Untuk login cepat, contoh: siti)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">@</span>
+                  <input
+                    type="text"
+                    placeholder="siti / admin2"
+                    value={newAdminData.username}
+                    onChange={(e) => setNewAdminData({ ...newAdminData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Email Login <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -1276,6 +1327,22 @@ export const SettingsView: React.FC = () => {
                   onChange={(e) => setEditAdminData({ ...editAdminData, name: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Username Login <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={editAdminData.username}
+                    onChange={(e) => setEditAdminData({ ...editAdminData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                  />
+                </div>
               </div>
 
               <div>

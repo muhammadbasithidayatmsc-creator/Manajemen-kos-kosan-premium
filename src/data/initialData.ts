@@ -1,4 +1,4 @@
-import { Property, Room, Tenant, Bill, Payment, Expense, AppSettings } from '../types';
+import { Property, Room, Tenant, Bill, Payment, Expense, AppSettings, UserAccount } from '../types';
 
 export const INITIAL_SETTINGS: AppSettings = {
   business: {
@@ -148,6 +148,7 @@ export const INITIAL_TENANTS: Tenant[] = [
     status: 'Aktif',
     notes: 'Karyawan swasta di SCBD, motor Honda Vario B 4321 XYZ',
     emergencyContact: 'Ibu Ratna (081298765432) - Ibu Kandung',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-01-10',
   },
   {
@@ -164,6 +165,7 @@ export const INITIAL_TENANTS: Tenant[] = [
     status: 'Aktif',
     notes: 'Mahasiswa Magister UI, rajin dan tertib',
     emergencyContact: 'Pak Bambang (085611223344) - Ayah',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-03-01',
   },
   {
@@ -180,6 +182,7 @@ export const INITIAL_TENANTS: Tenant[] = [
     status: 'Aktif',
     notes: 'Dokter residen di RS Tebet, mobil Honda Brio B 1234 ABC',
     emergencyContact: 'Ibu Halimah (087700998877) - Ibu',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-02-15',
   },
 ];
@@ -203,6 +206,7 @@ export const INITIAL_BILLS: Bill[] = [
     status: 'Lunas',
     paidAt: '2026-09-08',
     paymentMethod: 'Transfer Bank',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-09-01',
   },
   {
@@ -220,6 +224,7 @@ export const INITIAL_BILLS: Bill[] = [
     totalAmount: 1150000,
     notes: 'Promo potongan mahasiswa Rp 50.000',
     status: 'Terlambat',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-09-01',
   },
   {
@@ -238,6 +243,7 @@ export const INITIAL_BILLS: Bill[] = [
     totalAmount: 2300000,
     notes: 'Tagihan sewa kamar executive bulan September',
     status: 'Belum Dibayar',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-09-01',
   },
   {
@@ -258,6 +264,7 @@ export const INITIAL_BILLS: Bill[] = [
     status: 'Lunas',
     paidAt: '2026-08-09',
     paymentMethod: 'Transfer Bank',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-08-01',
   },
   {
@@ -277,6 +284,7 @@ export const INITIAL_BILLS: Bill[] = [
     status: 'Lunas',
     paidAt: '2026-08-04',
     paymentMethod: 'Cash',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-08-01',
   },
 ];
@@ -293,6 +301,7 @@ export const INITIAL_PAYMENTS: Payment[] = [
     amount: 1250000,
     method: 'Transfer Bank',
     notes: 'Transfer via BCA m-banking',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-09-08',
   },
   {
@@ -306,6 +315,7 @@ export const INITIAL_PAYMENTS: Payment[] = [
     amount: 1250000,
     method: 'Transfer Bank',
     notes: 'Transfer BCA',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-08-09',
   },
   {
@@ -319,6 +329,7 @@ export const INITIAL_PAYMENTS: Payment[] = [
     amount: 1200000,
     method: 'Cash',
     notes: 'Dibayar tunai di kantor kos',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-08-04',
   },
 ];
@@ -332,6 +343,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Token listrik utama dan pompa air',
     amount: 450000,
     notes: 'ID Pelanggan 542109823',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-09-03',
   },
   {
@@ -342,6 +354,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'IndiHome 100 Mbps kos Melati',
     amount: 375000,
     notes: 'Langganan bulanan',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-09-04',
   },
   {
@@ -352,6 +365,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Jasa pembersihan umum & sampah',
     amount: 250000,
     notes: 'Iuran RW & petugas sampah',
+    createdBy: 'Bapak Ahmad Fauzi',
     createdAt: '2026-09-05',
   },
   {
@@ -362,6 +376,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Token listrik PLN',
     amount: 450000,
     notes: 'Bulan Agustus',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-08-02',
   },
   {
@@ -372,29 +387,32 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Ganti kran air kamar mandi M02',
     amount: 120000,
     notes: 'Material pipa + kran Onda',
+    createdBy: 'Siti Rahma',
     createdAt: '2026-08-05',
   },
 ];
 
-export const INITIAL_ADMIN_ACCOUNTS = [
+export const INITIAL_ADMIN_ACCOUNTS: UserAccount[] = [
   {
     id: 'user-owner',
-    name: 'Bapak Hendra Pratama (Owner)',
+    name: 'Bapak Ahmad Fauzi',
+    username: 'owner',
     email: 'owner@kos.id',
-    password: 'owner123',
-    role: 'OWNER' as const,
+    password: '123456',
+    role: 'OWNER',
     phone: '081803716514',
-    status: 'Aktif' as const,
+    status: 'Aktif',
     createdAt: '2026-01-01',
   },
   {
     id: 'user-admin-1',
-    name: 'Siti Rahma (Admin Operasional)',
+    name: 'Siti Rahma',
+    username: 'admin',
     email: 'admin@kos.id',
-    password: 'admin123',
-    role: 'ADMIN' as const,
+    password: '123456',
+    role: 'ADMIN',
     phone: '081803716514',
-    status: 'Aktif' as const,
+    status: 'Aktif',
     createdAt: '2026-02-01',
   },
 ];

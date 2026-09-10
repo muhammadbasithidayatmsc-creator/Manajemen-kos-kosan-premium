@@ -4,6 +4,8 @@ import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { ToastContainer } from './components/ToastContainer';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ProfileModal } from './components/ProfileModal';
+import { LoginView } from './components/LoginView';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
@@ -24,7 +26,18 @@ const MainLayout: React.FC = () => {
     setActiveMenu,
     viewingInvoice,
     closeInvoice,
+    isAuthenticated,
   } = useKos();
+
+  // If user is logged out, show the Premium Login Portal!
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginView />
+        <ToastContainer />
+      </>
+    );
+  }
 
   // Mobile menu drawer state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -197,6 +210,9 @@ const MainLayout: React.FC = () => {
 
       {/* Global Delete/Action Confirmation Dialog */}
       <ConfirmationModal />
+
+      {/* Profile & Change Password Modal */}
+      <ProfileModal />
 
       {/* Global Toast Notifications */}
       <ToastContainer />

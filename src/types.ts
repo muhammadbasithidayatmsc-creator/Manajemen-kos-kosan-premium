@@ -39,6 +39,7 @@ export interface Tenant {
   status: TenantStatus;
   notes?: string;
   emergencyContact?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -60,6 +61,7 @@ export interface Bill {
   status: BillStatus;
   paidAt?: string;
   paymentMethod?: PaymentMethod;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -75,6 +77,7 @@ export interface Payment {
   method: PaymentMethod;
   notes?: string;
   receiptProof?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -101,6 +104,7 @@ export interface Expense {
   description: string;
   amount: number;
   notes?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -139,6 +143,7 @@ export type UserRole = 'OWNER' | 'ADMIN';
 export interface UserAccount {
   id: string;
   name: string;
+  username: string;
   email: string;
   password?: string;
   role: UserRole;

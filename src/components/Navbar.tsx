@@ -15,6 +15,10 @@ import {
   ShieldCheck,
   UserCheck,
   ArrowLeftRight,
+  User,
+  Lock,
+  LogOut,
+  KeyRound,
 } from 'lucide-react';
 import { formatDateIndo } from '../utils/formatters';
 
@@ -24,7 +28,16 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction }) => {
-  const { activeMenu, setActiveMenu, settings, currentUser, switchRole } = useKos();
+  const {
+    activeMenu,
+    setActiveMenu,
+    settings,
+    currentUser,
+    switchRole,
+    setIsProfileModalOpen,
+    setProfileModalTab,
+    logout,
+  } = useKos();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
@@ -220,7 +233,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             className="flex items-center gap-2 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl hover:bg-slate-100 border border-slate-200/80 transition-colors text-left"
           >
-            {settings.business.logoUrl ? (
+            {currentUser.avatarUrl ? (
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.name}
+                className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 shrink-0 shadow-2xs"
+              />
+            ) : settings.business.logoUrl ? (
               <img
                 src={settings.business.logoUrl}
                 alt={currentUser.name}
@@ -240,7 +259,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
                 {currentUser.name}
               </p>
               <p className="text-[10px] text-slate-500 leading-tight font-medium">
-                {currentUser.role}
+                @{currentUser.username || (isOwner ? 'owner' : 'admin')} • {currentUser.role}
               </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
@@ -256,8 +275,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
                 id="profile-dropdown-menu"
                 className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-30 animate-in fade-in zoom-in-95 duration-150"
               >
-                <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2.5">
-                  {settings.business.logoUrl ? (
+                <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-2.5">
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 shadow-xs"
+                    />
+                  ) : settings.business.logoUrl ? (
                     <img
                       src={settings.business.logoUrl}
                       alt={currentUser.name}
@@ -274,7 +299,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
                   )}
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                    <p className="text-[11px] text-slate-500 truncate">@{currentUser.username || (isOwner ? 'owner' : 'admin')}</p>
                     <span
                       className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                         isOwner
@@ -289,6 +314,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
 
                 <div className="py-1">
                   <button
+                    id="btn-nav-edit-profile"
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      setProfileModalTab('profile');
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                  >
+                    <User className="w-4 h-4 text-slate-400" />
+                    <span>Edit Profil & Foto</span>
+                  </button>
+
+                  <button
+                    id="btn-nav-change-password"
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      setProfileModalTab('password');
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                  >
+                    <KeyRound className="w-4 h-4 text-amber-500" />
+                    <span>Ganti Password</span>
+                  </button>
+
+                  <button
                     id="btn-nav-switch-role-item"
                     onClick={() => {
                       setProfileDropdownOpen(false);
@@ -298,7 +349,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
                   >
                     <span className="flex items-center gap-2">
                       <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-600" />
-                      Ganti ke {isOwner ? 'Admin (Operasional)' : 'Owner (Full Access)'}
+                      Ganti ke {isOwner ? 'Admin Operasional' : 'Owner'}
                     </span>
                   </button>
 
@@ -312,6 +363,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, onQuickAction 
                   >
                     <SettingsIcon className="w-4 h-4 text-slate-400" />
                     <span>Pengaturan Aplikasi</span>
+                  </button>
+
+                  <div className="my-1 border-t border-slate-100" />
+
+                  <button
+                    id="btn-nav-logout"
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <span>Keluar / Logout</span>
                   </button>
                 </div>
               </div>

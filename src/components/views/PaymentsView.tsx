@@ -468,8 +468,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-indigo-600">
-                        {p.invoiceNumber}
+                      <td className="py-3.5 px-4">
+                        <div className="font-mono font-bold text-indigo-600">{p.invoiceNumber}</div>
+                        {p.createdBy && (
+                          <div className="text-[10px] text-slate-400 font-sans font-normal">
+                            Oleh: {p.createdBy}
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">

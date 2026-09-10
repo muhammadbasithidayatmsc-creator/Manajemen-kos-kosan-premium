@@ -432,6 +432,11 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             NIK: {tenant.nik}
                           </div>
                         )}
+                        {tenant.createdBy && (
+                          <div className="text-[10px] text-indigo-600/80 font-medium">
+                            Oleh: {tenant.createdBy}
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
