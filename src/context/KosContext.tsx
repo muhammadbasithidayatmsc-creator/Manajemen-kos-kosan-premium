@@ -9,6 +9,8 @@ import {
   AppSettings,
   ActiveMenu,
   ToastMessage,
+  UserAccount,
+  UserRole,
 } from '../types';
 import {
   INITIAL_PROPERTIES,
@@ -18,15 +20,28 @@ import {
   INITIAL_PAYMENTS,
   INITIAL_EXPENSES,
   INITIAL_SETTINGS,
+  INITIAL_ADMIN_ACCOUNTS,
 } from '../data/initialData';
 
 interface KosContextType {
+  // Authentication & Roles
+  currentUser: UserAccount;
+  setCurrentUser: (user: UserAccount) => void;
+  adminAccounts: UserAccount[];
+  login: (email: string, pass: string) => boolean;
+  logout: () => void;
+  switchRole: (role: UserRole) => void;
+  addAdminAccount: (account: Omit<UserAccount, 'id' | 'createdAt'>) => void;
+  updateAdminAccount: (id: string, updated: Partial<UserAccount>) => void;
+  deleteAdminAccount: (id: string) => void;
+  toggleAdminStatus: (id: string) => void;
+
   // Navigation
   activeMenu: ActiveMenu;
   setActiveMenu: (menu: ActiveMenu) => void;
-  selectedBillForInvoice: Bill | null;
-  setSelectedBillForInvoice: (bill: Bill | null) => void;
+  viewingInvoice: Bill | null;
   openInvoice: (bill: Bill) => void;
+  closeInvoice: () => void;
 
   // Data
   properties: Property[];
@@ -76,6 +91,7 @@ interface KosContextType {
   // Data Management
   resetAllData: () => void;
   loadSampleData: () => void;
+  resetToInitialData: () => void;
   exportBackupJSON: () => void;
   importBackupJSON: (jsonString: string) => boolean;
 
@@ -102,7 +118,25 @@ const KosContext = createContext<KosContextType | undefined>(undefined);
 export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Navigation state
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>('dashboard');
-  const [selectedBillForInvoice, setSelectedBillForInvoice] = useState<Bill | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Bill | null>(null);
+
+  // User Authentication state
+  const [adminAccounts, setAdminAccounts] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_admin_accounts`);
+    return saved ? JSON.parse(saved) : INITIAL_ADMIN_ACCOUNTS;
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_current_user`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback
+      }
+    }
+    return INITIAL_ADMIN_ACCOUNTS[0]; // Default is Owner
+  });
 
   // Entities state
   const [properties, setProperties] = useState<Property[]>(() => {
@@ -157,6 +191,14 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   // Save to LocalStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}_admin_accounts`, JSON.stringify(adminAccounts));
+  }, [adminAccounts]);
+
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}_current_user`, JSON.stringify(currentUser));
+  }, [currentUser]);
+
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_properties`, JSON.stringify(properties));
   }, [properties]);
@@ -215,10 +257,103 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Open invoice viewer directly
+  // Invoice view helpers
   const openInvoice = (bill: Bill) => {
-    setSelectedBillForInvoice(bill);
-    setActiveMenu('invoice');
+    setViewingInvoice(bill);
+  };
+
+  const closeInvoice = () => {
+    setViewingInvoice(null);
+  };
+
+  // Authentication Helpers
+  const login = (email: string, pass: string): boolean => {
+    const found = adminAccounts.find(
+      (acc) => acc.email.toLowerCase() === email.trim().toLowerCase() && acc.password === pass.trim()
+    );
+    if (found) {
+      if (found.status === 'Nonaktif') {
+        showToast('error', 'Akun ini sedang dinonaktifkan oleh Owner.');
+        return false;
+      }
+      setCurrentUser(found);
+      showToast('success', `Selamat datang kembali, ${found.name} (${found.role})`);
+      return true;
+    }
+    showToast('error', 'Email atau password salah!');
+    return false;
+  };
+
+  const logout = () => {
+    // Switch to default admin or open login
+    showToast('info', 'Anda telah keluar dari sesi.');
+  };
+
+  const switchRole = (targetRole: UserRole) => {
+    const targetUser = adminAccounts.find((a) => a.role === targetRole && a.status === 'Aktif');
+    if (targetUser) {
+      setCurrentUser(targetUser);
+      showToast('info', `Beralih ke mode ${targetRole}: ${targetUser.name}`);
+    } else {
+      // Create a fallback user of that role
+      const fallbackUser: UserAccount = {
+        id: `user-${targetRole.toLowerCase()}`,
+        name: targetRole === 'OWNER' ? 'Bapak Hendra Pratama (Owner)' : 'Siti Rahma (Admin Operasional)',
+        email: `${targetRole.toLowerCase()}@kos.id`,
+        role: targetRole,
+        phone: settings.business.whatsappNumber || '081803716514',
+        status: 'Aktif',
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      setCurrentUser(fallbackUser);
+      showToast('info', `Beralih ke mode ${targetRole}`);
+    }
+  };
+
+  const addAdminAccount = (newAcc: Omit<UserAccount, 'id' | 'createdAt'>) => {
+    const id = 'admin-' + Date.now();
+    const created: UserAccount = {
+      ...newAcc,
+      id,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setAdminAccounts((prev) => [...prev, created]);
+    showToast('success', `Akun Admin "${created.name}" berhasil dibuat.`);
+  };
+
+  const updateAdminAccount = (id: string, updated: Partial<UserAccount>) => {
+    setAdminAccounts((prev) =>
+      prev.map((acc) => (acc.id === id ? { ...acc, ...updated } : acc))
+    );
+    if (currentUser.id === id) {
+      setCurrentUser((prev) => ({ ...prev, ...updated }));
+    }
+    showToast('success', 'Akun admin berhasil diperbarui.');
+  };
+
+  const deleteAdminAccount = (id: string) => {
+    if (currentUser.id === id) {
+      showToast('error', 'Tidak dapat menghapus akun yang sedang aktif digunakan.');
+      return;
+    }
+    const target = adminAccounts.find((a) => a.id === id);
+    if (target?.role === 'OWNER') {
+      showToast('error', 'Akun Owner utama tidak boleh dihapus.');
+      return;
+    }
+    setAdminAccounts((prev) => prev.filter((a) => a.id !== id));
+    showToast('info', `Akun "${target?.name}" telah dihapus.`);
+  };
+
+  const toggleAdminStatus = (id: string) => {
+    const target = adminAccounts.find((a) => a.id === id);
+    if (!target) return;
+    if (target.role === 'OWNER') {
+      showToast('error', 'Status akun Owner tidak dapat dinonaktifkan.');
+      return;
+    }
+    const nextStatus = target.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+    updateAdminAccount(id, { status: nextStatus });
   };
 
   // Property CRUD
@@ -243,7 +378,6 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteProperty = (id: string) => {
     const target = properties.find((p) => p.id === id);
     setProperties((prev) => prev.filter((p) => p.id !== id));
-    // Also remove associated rooms, or keep them unassigned
     setRooms((prev) => prev.filter((r) => r.propertyId !== id));
     showToast('info', `Properti "${target?.name || ''}" telah dihapus.`);
   };
@@ -300,27 +434,22 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const newRoomId = updated.roomId ?? oldTenant.roomId;
       const newStatus = updated.status ?? oldTenant.status;
 
-      if (newRoomId !== oldTenant.roomId) {
-        // Free old room
+      // If room changed, free old room
+      if (oldTenant.roomId && oldTenant.roomId !== newRoomId) {
         setRooms((prev) =>
           prev.map((r) => (r.id === oldTenant.roomId ? { ...r, status: 'Kosong' } : r))
         );
-        // Fill new room
-        if (newStatus === 'Aktif') {
-          setRooms((prev) =>
-            prev.map((r) => (r.id === newRoomId ? { ...r, status: 'Terisi' } : r))
-          );
-        }
-      } else if (newStatus !== oldTenant.status) {
-        if (newStatus === 'Tidak Aktif') {
-          setRooms((prev) =>
-            prev.map((r) => (r.id === newRoomId ? { ...r, status: 'Kosong' } : r))
-          );
-        } else if (newStatus === 'Aktif') {
-          setRooms((prev) =>
-            prev.map((r) => (r.id === newRoomId ? { ...r, status: 'Terisi' } : r))
-          );
-        }
+      }
+
+      // If inactive, free room
+      if (newStatus === 'Tidak Aktif' && newRoomId) {
+        setRooms((prev) =>
+          prev.map((r) => (r.id === newRoomId ? { ...r, status: 'Kosong' } : r))
+        );
+      } else if (newStatus === 'Aktif' && newRoomId) {
+        setRooms((prev) =>
+          prev.map((r) => (r.id === newRoomId ? { ...r, status: 'Terisi' } : r))
+        );
       }
     }
 
@@ -339,15 +468,14 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('info', `Penghuni "${target?.fullName || ''}" telah dihapus.`);
   };
 
-  // Bill CRUD
+  // Bill CRUD - Automatic sequential invoice number: INV-0001, INV-0002...
   const addBill = (
     newBill: Omit<Bill, 'id' | 'createdAt' | 'invoiceNumber'> & { invoiceNumber?: string }
   ) => {
     const id = 'bill-' + Date.now();
-    const invCount = bills.length + 1;
-    const invNumber =
-      newBill.invoiceNumber ||
-      `INV-${new Date().getFullYear()}-${invCount.toString().padStart(4, '0')}`;
+    const nextSeq = bills.length + 1;
+    const autoInvNumber = `INV-${nextSeq.toString().padStart(4, '0')}`;
+    const invNumber = newBill.invoiceNumber || autoInvNumber;
 
     const total =
       (newBill.rentAmount || 0) +
@@ -371,8 +499,11 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setBills((prev) =>
       prev.map((b) => {
         if (b.id !== id) return b;
-        const merged = { ...b, ...updated };
-        // Recalculate total if components changed
+        // Never change existing invoiceNumber when editing
+        const safeUpdated = { ...updated };
+        delete safeUpdated.invoiceNumber;
+
+        const merged = { ...b, ...safeUpdated };
         if (
           updated.rentAmount !== undefined ||
           updated.additionalFees !== undefined ||
@@ -394,6 +525,8 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteBill = (id: string) => {
     const target = bills.find((b) => b.id === id);
     setBills((prev) => prev.filter((b) => b.id !== id));
+    // Also remove associated payments if any
+    setPayments((prev) => prev.filter((p) => p.billId !== id));
     showToast('info', `Tagihan ${target?.invoiceNumber || ''} dihapus.`);
   };
 
@@ -423,7 +556,7 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       );
     }
 
-    showToast('success', `Pembayaran ${created.invoiceNumber} sebesar Rp ${created.amount.toLocaleString('id-ID')} berhasil dicatat.`);
+    showToast('success', `Pembayaran ${created.invoiceNumber} berhasil dicatat.`);
   };
 
   const updatePayment = (id: string, updated: Partial<Payment>) => {
@@ -439,28 +572,23 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setPayments((prev) => prev.filter((p) => p.id !== id));
 
-    // If payment was tied to a bill, check if any remaining payments exist for this bill
+    // Revert bill status back to 'Belum Dibayar' if this payment was linked to a bill
     if (target.billId) {
-      const remainingPayments = payments.filter(
-        (p) => p.billId === target.billId && p.id !== id
+      setBills((prev) =>
+        prev.map((b) =>
+          b.id === target.billId
+            ? {
+                ...b,
+                status: 'Belum Dibayar',
+                paidAt: undefined,
+                paymentMethod: undefined,
+              }
+            : b
+        )
       );
-      if (remainingPayments.length === 0) {
-        setBills((prev) =>
-          prev.map((b) =>
-            b.id === target.billId
-              ? {
-                  ...b,
-                  status: 'Belum Dibayar',
-                  paidAt: undefined,
-                  paymentMethod: undefined,
-                }
-              : b
-          )
-        );
-      }
     }
 
-    showToast('info', 'Catatan pembayaran dihapus.');
+    showToast('info', `Pembayaran ${target.invoiceNumber} telah dihapus.`);
   };
 
   // Expense CRUD
@@ -472,7 +600,7 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       createdAt: new Date().toISOString().split('T')[0],
     };
     setExpenses((prev) => [created, ...prev]);
-    showToast('success', `Pengeluaran "${created.description}" berhasil disimpan.`);
+    showToast('success', `Pengeluaran ${created.category} berhasil dicatat.`);
   };
 
   const updateExpense = (id: string, updated: Partial<Expense>) => {
@@ -483,17 +611,24 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteExpense = (id: string) => {
+    const target = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-    showToast('info', 'Catatan pengeluaran dihapus.');
+    showToast('info', `Pengeluaran "${target?.description || ''}" telah dihapus.`);
   };
 
-  // Settings
+  // Settings & Category CRUD
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     setSettings((prev) => ({
       ...prev,
       ...newSettings,
-      business: { ...prev.business, ...(newSettings.business || {}) },
-      payment: { ...prev.payment, ...(newSettings.payment || {}) },
+      business: {
+        ...prev.business,
+        ...(newSettings.business || {}),
+      },
+      payment: {
+        ...prev.payment,
+        ...(newSettings.payment || {}),
+      },
       invoiceTemplate: {
         ...prev.invoiceTemplate,
         ...(newSettings.invoiceTemplate || {}),
@@ -527,7 +662,6 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...prev,
       expenseCategories: prev.expenseCategories.map((c) => (c === oldCategory ? cleanNew : c)),
     }));
-    // Also update existing expenses that used oldCategory
     setExpenses((prev) =>
       prev.map((e) => (e.category === oldCategory ? { ...e, category: cleanNew } : e))
     );
@@ -561,12 +695,17 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setPayments(INITIAL_PAYMENTS);
     setExpenses(INITIAL_EXPENSES);
     setSettings(INITIAL_SETTINGS);
+    setAdminAccounts(INITIAL_ADMIN_ACCOUNTS);
     showToast('success', 'Data sample berhasil dimuat ulang.');
+  };
+
+  const resetToInitialData = () => {
+    loadSampleData();
   };
 
   const exportBackupJSON = () => {
     const backup = {
-      version: '1.0',
+      version: '2.0',
       exportDate: new Date().toISOString(),
       properties,
       rooms,
@@ -575,6 +714,7 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       payments,
       expenses,
       settings,
+      adminAccounts,
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
       type: 'application/json',
@@ -598,6 +738,7 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (data.payments && Array.isArray(data.payments)) setPayments(data.payments);
       if (data.expenses && Array.isArray(data.expenses)) setExpenses(data.expenses);
       if (data.settings) setSettings(data.settings);
+      if (data.adminAccounts && Array.isArray(data.adminAccounts)) setAdminAccounts(data.adminAccounts);
       showToast('success', 'Data berhasil dipulihkan dari file backup.');
       return true;
     } catch {
@@ -609,11 +750,21 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <KosContext.Provider
       value={{
+        currentUser,
+        setCurrentUser,
+        adminAccounts,
+        login,
+        logout,
+        switchRole,
+        addAdminAccount,
+        updateAdminAccount,
+        deleteAdminAccount,
+        toggleAdminStatus,
         activeMenu,
         setActiveMenu,
-        selectedBillForInvoice,
-        setSelectedBillForInvoice,
+        viewingInvoice,
         openInvoice,
+        closeInvoice,
         properties,
         rooms,
         tenants,
@@ -645,6 +796,7 @@ export const KosProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteExpenseCategory,
         resetAllData,
         loadSampleData,
+        resetToInitialData,
         exportBackupJSON,
         importBackupJSON,
         toasts,

@@ -22,12 +22,14 @@ import {
   Layers,
   Settings2,
   Check,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   formatRupiah,
   formatDateIndo,
   exportToCSV,
 } from '../../utils/formatters';
+import { exportToExcel, exportToPDF } from '../../utils/exportEngine';
 
 export interface ExpensesViewProps {
   autoOpenAddModal?: boolean;
@@ -193,20 +195,63 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     );
   };
 
-  const handleExportCSV = () => {
-    const headers = ['Tanggal', 'Kategori', 'Properti', 'Keterangan', 'Nominal'];
-    const rows = filteredExpenses.map((exp) => {
+  const handleExportExcel = () => {
+    const filename = `Data_Pengeluaran_Kos_${new Date().getFullYear()}`;
+    const headers = ['No', 'Tanggal', 'Kategori', 'Properti', 'Keterangan', 'Nominal', 'Catatan'];
+    const rows = filteredExpenses.map((exp, idx) => {
       const prop = properties.find((p) => p.id === exp.propertyId);
       return [
+        idx + 1,
         exp.date,
         exp.category,
         prop?.name || '-',
         exp.description,
         exp.amount,
+        exp.notes || '',
       ];
     });
 
-    exportToCSV(`pengeluaran_${new Date().toISOString().split('T')[0]}`, headers, rows);
+    rows.push([]);
+    rows.push(['', '', '', '', 'TOTAL PENGELUARAN', totalFilteredAmount, '']);
+
+    exportToExcel({
+      filename,
+      title: 'DAFTAR PENGELUARAN OPERASIONAL KOS',
+      subtitle: `Total: ${filteredExpenses.length} Pos Pengeluaran (Total Biaya: ${formatRupiah(totalFilteredAmount)})`,
+      businessName: settings.business.businessName,
+      headers,
+      rows,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const filename = `Data_Pengeluaran_Kos_${new Date().getFullYear()}`;
+    const headers = ['No', 'Tanggal', 'Kategori', 'Properti', 'Keterangan', 'Nominal'];
+    const rows = filteredExpenses.map((exp, idx) => {
+      const prop = properties.find((p) => p.id === exp.propertyId);
+      return [
+        idx + 1,
+        formatDateIndo(exp.date),
+        exp.category,
+        prop?.name || '-',
+        exp.description,
+        formatRupiah(exp.amount),
+      ];
+    });
+
+    exportToPDF({
+      filename,
+      title: 'DAFTAR PENGELUARAN OPERASIONAL KOS',
+      subtitle: `Total Transaksi: ${filteredExpenses.length} | Akumulasi Biaya: ${formatRupiah(totalFilteredAmount)}`,
+      businessName: settings.business.businessName,
+      address: `${settings.business.address}, ${settings.business.city}`,
+      ownerName: settings.business.ownerName,
+      ownerPhone: settings.business.whatsappNumber,
+      orientation: 'landscape',
+      headers,
+      rows,
+      footerNote: `Dokumen Biaya Operasional ${settings.business.businessName} - WhatsApp Pengelola: ${settings.business.whatsappNumber}`,
+    });
   };
 
   const getCategoryIcon = (category: string) => {
@@ -270,11 +315,23 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
           </button>
 
           <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-colors"
+            id="btn-export-expenses-excel"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Export Excel"
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            id="btn-export-expenses-pdf"
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download PDF</span>
           </button>
 
           <button

@@ -20,11 +20,14 @@ import {
   Table as TableIcon,
   Receipt,
   MessageCircle,
+  FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 import {
   formatRupiah,
   cleanWhatsappNumber,
 } from '../../utils/formatters';
+import { exportToExcel, exportToPDF } from '../../utils/exportEngine';
 
 interface RoomsViewProps {
   onAssignTenantToRoom?: (roomId: string, propertyId: string) => void;
@@ -41,6 +44,7 @@ export const RoomsView: React.FC<RoomsViewProps> = ({
     rooms,
     properties,
     tenants,
+    settings,
     addRoom,
     updateRoom,
     deleteRoom,
@@ -207,6 +211,73 @@ export const RoomsView: React.FC<RoomsViewProps> = ({
   const totalBooking = rooms.filter((r) => r.status === 'Booking').length;
   const totalMaintenance = rooms.filter((r) => r.status === 'Maintenance').length;
 
+  const handleExportExcel = () => {
+    const filename = `Data_Kamar_Kos_${new Date().getFullYear()}`;
+    const headers = [
+      'No',
+      'Nomor Kamar',
+      'Properti',
+      'Tipe Kamar',
+      'Harga Sewa / Bulan',
+      'Status',
+      'Fasilitas',
+      'Catatan',
+    ];
+    const rows = filteredRooms.map((r, idx) => {
+      const prop = properties.find((p) => p.id === r.propertyId);
+      return [
+        idx + 1,
+        r.roomNumber,
+        prop?.name || '-',
+        r.type,
+        r.monthlyPrice,
+        r.status,
+        (r.facilities || []).join(', '),
+        r.notes || '-',
+      ];
+    });
+
+    exportToExcel({
+      filename,
+      title: 'DATA DAFTAR KAMAR KOS',
+      subtitle: `Total: ${filteredRooms.length} Kamar (Terisi: ${totalOccupied}, Kosong: ${totalEmpty}, Booking: ${totalBooking}, Maintenance: ${totalMaintenance})`,
+      businessName: settings.business.businessName,
+      headers,
+      rows,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const filename = `Data_Kamar_Kos_${new Date().getFullYear()}`;
+    const headers = ['No', 'Nomor Kamar', 'Properti', 'Tipe', 'Harga Sewa', 'Status', 'Fasilitas'];
+    const rows = filteredRooms.map((r, idx) => {
+      const prop = properties.find((p) => p.id === r.propertyId);
+      return [
+        idx + 1,
+        r.roomNumber,
+        prop?.name || '-',
+        r.type,
+        formatRupiah(r.monthlyPrice),
+        r.status,
+        (r.facilities || []).join(', '),
+      ];
+    });
+
+    exportToPDF({
+      filename,
+      title: 'DATA DAFTAR KAMAR KOS',
+      subtitle: `Total Kamar: ${filteredRooms.length} Unit (Terisi: ${totalOccupied}, Kosong: ${totalEmpty})`,
+      businessName: settings.business.businessName,
+      address: `${settings.business.address}, ${settings.business.city}`,
+      ownerName: settings.business.ownerName,
+      ownerPhone: settings.business.whatsappNumber,
+      orientation: 'landscape',
+      headers,
+      rows,
+      footerNote: `Dokumen Inventaris Kamar ${settings.business.businessName} - WhatsApp: ${settings.business.whatsappNumber}`,
+    });
+  };
+
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
@@ -220,7 +291,7 @@ export const RoomsView: React.FC<RoomsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* View Toggle */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
@@ -248,6 +319,26 @@ export const RoomsView: React.FC<RoomsViewProps> = ({
               <span className="hidden md:inline">Tabel</span>
             </button>
           </div>
+
+          <button
+            id="btn-export-excel-rooms"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Export Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            id="btn-export-pdf-rooms"
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download PDF</span>
+          </button>
 
           <button
             id="btn-add-room"

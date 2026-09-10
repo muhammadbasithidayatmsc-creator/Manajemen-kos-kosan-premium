@@ -16,12 +16,14 @@ import {
   Upload,
   Image as ImageIcon,
   Eye,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   formatRupiah,
   formatDateIndo,
   exportToCSV,
 } from '../../utils/formatters';
+import { exportToExcel, exportToPDF } from '../../utils/exportEngine';
 
 interface PaymentsViewProps {
   autoOpenAddModal?: boolean;
@@ -38,6 +40,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     tenants,
     properties,
     rooms,
+    settings,
     recordPayment,
     updatePayment,
     deletePayment,
@@ -199,23 +202,26 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     );
   };
 
-  const handleExportCSV = () => {
+  const handleExportExcel = () => {
+    const filename = `Catatan_Pembayaran_Kos_${new Date().getFullYear()}`;
     const headers = [
+      'No',
       'No. Invoice',
       'Penghuni',
       'Properti',
       'Kamar',
       'Tanggal Bayar',
       'Nominal',
-      'Metode',
+      'Metode Pembayaran',
       'Catatan',
     ];
 
-    const rows = filteredPayments.map((p) => {
+    const rows = filteredPayments.map((p, idx) => {
       const t = tenants.find((item) => item.id === p.tenantId);
       const prop = properties.find((item) => item.id === p.propertyId);
       const r = rooms.find((item) => item.id === p.roomId);
       return [
+        idx + 1,
         p.invoiceNumber,
         t?.fullName || '-',
         prop?.name || '-',
@@ -227,7 +233,51 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       ];
     });
 
-    exportToCSV(`catatan_pembayaran_${new Date().toISOString().split('T')[0]}`, headers, rows);
+    rows.push([]);
+    rows.push(['', '', '', '', '', 'TOTAL PEMBAYARAN', totalPaymentsAmount, '', '']);
+
+    exportToExcel({
+      filename,
+      title: 'DAFTAR CATATAN PEMBAYARAN SEWA',
+      subtitle: `Total: ${filteredPayments.length} Pembayaran Masuk (Total: ${formatRupiah(totalPaymentsAmount)})`,
+      businessName: settings.business.businessName,
+      headers,
+      rows,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const filename = `Catatan_Pembayaran_Kos_${new Date().getFullYear()}`;
+    const headers = ['No', 'Invoice', 'Penghuni', 'Kamar', 'Tgl Bayar', 'Metode', 'Nominal', 'Catatan'];
+
+    const rows = filteredPayments.map((p, idx) => {
+      const t = tenants.find((item) => item.id === p.tenantId);
+      const r = rooms.find((item) => item.id === p.roomId);
+      return [
+        idx + 1,
+        p.invoiceNumber,
+        t?.fullName || '-',
+        r?.roomNumber || '-',
+        formatDateIndo(p.paymentDate),
+        p.method,
+        formatRupiah(p.amount),
+        p.notes || '-',
+      ];
+    });
+
+    exportToPDF({
+      filename,
+      title: 'DAFTAR CATATAN PEMBAYARAN SEWA',
+      subtitle: `Total Transaksi: ${filteredPayments.length} | Akumulasi Dana: ${formatRupiah(totalPaymentsAmount)}`,
+      businessName: settings.business.businessName,
+      address: `${settings.business.address}, ${settings.business.city}`,
+      ownerName: settings.business.ownerName,
+      ownerPhone: settings.business.whatsappNumber,
+      orientation: 'landscape',
+      headers,
+      rows,
+      footerNote: `Dokumen Rekonsiliasi Kas ${settings.business.businessName} - WhatsApp Pengelola: ${settings.business.whatsappNumber}`,
+    });
   };
 
   const filteredPayments = payments.filter((p) => {
@@ -258,19 +308,31 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 transition-colors shadow-2xs"
+            id="btn-export-payments-excel"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Export Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            id="btn-export-payments-pdf"
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Download PDF"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span>Download PDF</span>
           </button>
 
           <button
             id="btn-add-payment"
             onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-500/20 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-indigo-600/20 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>+ Catat Pembayaran</span>

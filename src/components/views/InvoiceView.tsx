@@ -101,10 +101,18 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ bill, onClose }) => {
           {/* Top Header */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b-2 border-slate-900">
             <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm">
-                  {settings.business.logoText || 'KM'}
-                </div>
+              <div className="flex items-center gap-3">
+                {settings.business.logoUrl ? (
+                  <img
+                    src={settings.business.logoUrl}
+                    alt={settings.business.kosName || 'Logo Kos'}
+                    className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shrink-0">
+                    {settings.business.logoText || 'KM'}
+                  </div>
+                )}
                 <div>
                   <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
                     {settings.business.kosName || settings.business.businessName || 'KOS MANAGEMENT'}

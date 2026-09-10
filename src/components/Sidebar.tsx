@@ -13,8 +13,9 @@ import {
   FileText,
   Settings,
   X,
-  Building,
-  AlertCircle,
+  ShieldCheck,
+  UserCheck,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,7 +24,16 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileOpen }) => {
-  const { activeMenu, setActiveMenu, bills, rooms, tenants, settings } = useKos();
+  const {
+    activeMenu,
+    setActiveMenu,
+    bills,
+    rooms,
+    tenants,
+    settings,
+    currentUser,
+    switchRole,
+  } = useKos();
 
   // Counts for smart badges
   const unpaidBillsCount = bills.filter(
@@ -31,7 +41,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
   ).length;
   const occupiedRoomsCount = rooms.filter((r) => r.status === 'Terisi').length;
 
-  const menuItems: { id: ActiveMenu; label: string; icon: React.ReactNode; badge?: string | number; badgeColor?: string }[] = [
+  const menuItems: {
+    id: ActiveMenu;
+    label: string;
+    icon: React.ReactNode;
+    badge?: string | number;
+    badgeColor?: string;
+  }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'properties', label: 'Properti', icon: <Building2 className="w-5 h-5" /> },
     {
@@ -66,21 +82,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
     setMobileOpen?.(false);
   };
 
+  const isOwner = currentUser.role === 'OWNER';
+
   const navContent = (
     <div className="flex flex-col h-full bg-[#0F172A] text-slate-200 select-none">
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/20 font-bold text-base tracking-wider shrink-0">
-            {settings.business.logoText || 'KM'}
-          </div>
+          {settings.business.logoUrl ? (
+            <img
+              src={settings.business.logoUrl}
+              alt={settings.business.businessName || 'Logo Profil'}
+              className="w-10 h-10 rounded-xl object-cover ring-2 ring-indigo-400/40 shadow-lg shadow-indigo-500/20 shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/20 font-bold text-base tracking-wider shrink-0">
+              {settings.business.logoText || 'KM'}
+            </div>
+          )}
           <div className="overflow-hidden">
             <h1 className="font-extrabold text-sm sm:text-base text-white truncate tracking-tight">
               {settings.business.businessName || 'KOS MANAGEMENT'}
             </h1>
-            <p className="text-[11px] text-slate-400 font-medium truncate flex items-center gap-1">
+            <p className="text-[11px] text-slate-400 font-medium truncate flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Owner / Admin Panel
+              {isOwner ? 'Owner Dashboard' : 'Admin Operasional'}
             </p>
           </div>
         </div>
@@ -96,8 +122,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
         </button>
       </div>
 
+      {/* Role Switcher Banner */}
+      <div className="px-3 pt-3 pb-1">
+        <div className="bg-slate-800/80 rounded-xl p-2.5 border border-slate-700/60 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                isOwner
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+              }`}
+            >
+              {isOwner ? <ShieldCheck className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${
+                    isOwner
+                      ? 'bg-amber-400/20 text-amber-300'
+                      : 'bg-sky-400/20 text-sky-300'
+                  }`}
+                >
+                  {currentUser.role}
+                </span>
+              </div>
+              <p className="text-xs text-slate-200 font-medium truncate">
+                {currentUser.name}
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="btn-sidebar-switch-role"
+            type="button"
+            onClick={() => switchRole(isOwner ? 'ADMIN' : 'OWNER')}
+            className="p-1.5 rounded-lg bg-slate-700/70 hover:bg-indigo-600 hover:text-white text-slate-300 transition-colors shrink-0"
+            title={isOwner ? 'Ganti ke Mode Admin Operasional' : 'Ganti ke Mode Owner (Akses Penuh)'}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1 py-4 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1 py-3 custom-scrollbar">
         <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Menu Utama
         </div>
@@ -150,10 +219,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
           </span>
         </div>
         <div className="flex items-center justify-between text-[11px] text-slate-400">
-          <span>Status Sistem:</span>
+          <span>Mode Sistem:</span>
           <span className="text-emerald-400 font-medium flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Online (Lokal MVP)
+            {isOwner ? 'Owner (Full Access)' : 'Admin (Operasional)'}
           </span>
         </div>
       </div>

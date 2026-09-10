@@ -18,12 +18,15 @@ import {
   CreditCard,
   AlertCircle,
   FileText,
+  FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 import {
   formatRupiah,
   formatDateIndo,
   cleanWhatsappNumber,
 } from '../../utils/formatters';
+import { exportToExcel, exportToPDF } from '../../utils/exportEngine';
 
 interface TenantsViewProps {
   onQuickCreateBillForTenant?: (tenant: Tenant) => void;
@@ -40,6 +43,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     tenants,
     properties,
     rooms,
+    settings,
     addTenant,
     updateTenant,
     deleteTenant,
@@ -212,6 +216,88 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return matchSearch && matchProp && matchStatus;
   });
 
+  const handleExportExcel = () => {
+    const filename = `Database_Penghuni_${new Date().getFullYear()}`;
+    const headers = [
+      'No',
+      'Nama Lengkap',
+      'WhatsApp',
+      'NIK',
+      'Alamat Asal',
+      'Properti',
+      'Kamar',
+      'Harga Sewa',
+      'Tgl Masuk',
+      'Jatuh Tempo (Tgl)',
+      'Status',
+      'Kontak Darurat',
+      'Catatan',
+    ];
+    const rows = filteredTenants.map((t, idx) => {
+      const prop = properties.find((p) => p.id === t.propertyId);
+      const room = rooms.find((r) => r.id === t.roomId);
+      return [
+        idx + 1,
+        t.fullName,
+        t.whatsappNumber,
+        t.nik || '-',
+        t.address || '-',
+        prop?.name || '-',
+        room?.roomNumber || '-',
+        t.monthlyRent,
+        t.entryDate,
+        `Tiap tgl ${t.dueDateDay}`,
+        t.status,
+        t.emergencyContact || '-',
+        t.notes || '-',
+      ];
+    });
+
+    exportToExcel({
+      filename,
+      title: 'DATABASE PENGHUNI KOS',
+      subtitle: `Total Terdaftar: ${filteredTenants.length} Penghuni`,
+      businessName: settings.business.businessName,
+      headers,
+      rows,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const filename = `Database_Penghuni_${new Date().getFullYear()}`;
+    const headers = ['No', 'Nama Lengkap', 'WhatsApp', 'NIK', 'Properti', 'Kamar', 'Harga Sewa', 'Tgl Masuk', 'Tempo', 'Status'];
+    const rows = filteredTenants.map((t, idx) => {
+      const prop = properties.find((p) => p.id === t.propertyId);
+      const room = rooms.find((r) => r.id === t.roomId);
+      return [
+        idx + 1,
+        t.fullName,
+        t.whatsappNumber,
+        t.nik || '-',
+        prop?.name || '-',
+        room?.roomNumber || '-',
+        formatRupiah(t.monthlyRent),
+        formatDateIndo(t.entryDate),
+        `Tgl ${t.dueDateDay}`,
+        t.status,
+      ];
+    });
+
+    exportToPDF({
+      filename,
+      title: 'DATABASE PENGHUNI KOS',
+      subtitle: `Total: ${filteredTenants.length} Penghuni (${filteredTenants.filter((t) => t.status === 'Aktif').length} Aktif)`,
+      businessName: settings.business.businessName,
+      address: `${settings.business.address}, ${settings.business.city}`,
+      ownerName: settings.business.ownerName,
+      ownerPhone: settings.business.whatsappNumber,
+      orientation: 'landscape',
+      headers,
+      rows,
+      footerNote: `Dokumen Resmi ${settings.business.businessName} - Kontak WhatsApp: ${settings.business.whatsappNumber}`,
+    });
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -225,14 +311,36 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
           </p>
         </div>
 
-        <button
-          id="btn-add-tenant"
-          onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm shadow-sm transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Tambah Penghuni</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            id="btn-export-excel-tenants"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Export Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            id="btn-export-pdf-tenants"
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download PDF</span>
+          </button>
+
+          <button
+            id="btn-add-tenant"
+            onClick={handleOpenAdd}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Penghuni</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search controls */}

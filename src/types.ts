@@ -114,6 +114,8 @@ export interface BusinessIdentity {
   city?: string;
   email?: string;
   logoText?: string;
+  logoUrl?: string; // Uploaded profile/logo photo (data URL base64)
+  profilePhoto?: string;
   description?: string;
 }
 
@@ -132,11 +134,26 @@ export interface InvoiceTemplateSettings {
   paymentInfoTitle?: string;
 }
 
+export type UserRole = 'OWNER' | 'ADMIN';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  phone?: string;
+  avatarUrl?: string;
+  status: 'Aktif' | 'Nonaktif';
+  createdAt: string;
+}
+
 export interface AppSettings {
   business: BusinessIdentity;
   payment: PaymentSettings;
   invoiceTemplate: InvoiceTemplateSettings;
   expenseCategories: string[];
+  adminAccounts?: UserAccount[];
 }
 
 export type ActiveMenu =

@@ -19,6 +19,7 @@ import {
   BedDouble,
   DollarSign,
   Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   formatRupiah,
@@ -27,6 +28,7 @@ import {
   cleanWhatsappNumber,
   exportToCSV,
 } from '../../utils/formatters';
+import { exportToExcel, exportToPDF } from '../../utils/exportEngine';
 
 interface BillsViewProps {
   initialTenantForBill?: Tenant | null;
@@ -257,8 +259,9 @@ export const BillsView: React.FC<BillsViewProps> = ({
     setPaymentModalOpen(false);
   };
 
-  // Export to CSV
-  const handleExportCSV = () => {
+  // Export to Excel
+  const handleExportExcel = () => {
+    const filename = `Data_Tagihan_Kos_${new Date().getFullYear()}`;
     const headers = [
       'No Invoice',
       'Penghuni',
@@ -296,7 +299,57 @@ export const BillsView: React.FC<BillsViewProps> = ({
       ];
     });
 
-    exportToCSV(`daftar_tagihan_${new Date().toISOString().split('T')[0]}`, headers, rows);
+    const totalAll = filteredBills.reduce((s, b) => s + b.totalAmount, 0);
+    rows.push([]);
+    rows.push(['', '', '', '', '', '', '', 'TOTAL', '', '', '', totalAll, '']);
+
+    exportToExcel({
+      filename,
+      title: 'DAFTAR TAGIHAN SEWA KOS',
+      subtitle: `Total Tagihan: ${filteredBills.length} Tagihan (Total: ${formatRupiah(totalAll)})`,
+      businessName: settings.business.businessName,
+      headers,
+      rows,
+    });
+  };
+
+  // Export to PDF
+  const handleExportPDF = () => {
+    const filename = `Data_Tagihan_Kos_${new Date().getFullYear()}`;
+    const headers = ['Invoice', 'Penghuni', 'Kamar', 'Periode', 'Jatuh Tempo', 'Sewa', 'Tambahan', 'Diskon', 'Total', 'Status'];
+
+    const rows = filteredBills.map((b) => {
+      const t = tenants.find((item) => item.id === b.tenantId);
+      const r = rooms.find((item) => item.id === b.roomId);
+      return [
+        b.invoiceNumber,
+        t?.fullName || '-',
+        r?.roomNumber || '-',
+        b.period,
+        formatDateIndo(b.dueDate),
+        formatRupiah(b.rentAmount),
+        formatRupiah(b.additionalFees),
+        formatRupiah(b.discount),
+        formatRupiah(b.totalAmount),
+        b.status,
+      ];
+    });
+
+    const totalAll = filteredBills.reduce((s, b) => s + b.totalAmount, 0);
+
+    exportToPDF({
+      filename,
+      title: 'DAFTAR TAGIHAN SEWA KOS',
+      subtitle: `Total: ${filteredBills.length} Tagihan | Akumulasi: ${formatRupiah(totalAll)}`,
+      businessName: settings.business.businessName,
+      address: `${settings.business.address}, ${settings.business.city}`,
+      ownerName: settings.business.ownerName,
+      ownerPhone: settings.business.whatsappNumber,
+      orientation: 'landscape',
+      headers,
+      rows,
+      footerNote: `Dokumen Tagihan Resmi ${settings.business.businessName} - WhatsApp Pengelola: ${settings.business.whatsappNumber}`,
+    });
   };
 
   // Extract unique periods for filter
@@ -332,14 +385,25 @@ export const BillsView: React.FC<BillsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            id="btn-export-bills-csv"
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            id="btn-export-bills-excel"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Export Excel"
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            id="btn-export-bills-pdf"
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download PDF</span>
           </button>
 
           <button

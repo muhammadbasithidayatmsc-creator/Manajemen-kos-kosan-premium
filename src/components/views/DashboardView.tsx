@@ -50,6 +50,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewExpense,
 }) => {
   const {
+    currentUser,
+    isOwner,
     properties,
     rooms,
     tenants,
@@ -247,11 +249,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Selamat datang kembali 👋
-            </h1>
+            <div className="flex items-center gap-4">
+              {settings.business.logoUrl && (
+                <img
+                  src={settings.business.logoUrl}
+                  alt={currentUser?.name}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover ring-2 ring-white/25 shadow-lg shrink-0 hidden sm:block"
+                />
+              )}
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-3">
+                  <span>Selamat datang kembali, {currentUser?.name || 'Pengelola'} 👋</span>
+                  <span
+                    className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider border ${
+                      isOwner
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                    }`}
+                  >
+                    {isOwner ? '👑 OWNER / PEMILIK' : '🛡️ ADMIN OPERASIONAL'}
+                  </span>
+                </h1>
+              </div>
+            </div>
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Kelola bisnis kos Anda dengan lebih mudah. Pantau status kamar, tagihan sewa, dan laba bersih secara real-time.
+              {isOwner
+                ? 'Kelola bisnis kos Anda dengan kendali penuh. Pantau status unit kamar, arus kas tagihan sewa, pengeluaran, dan laba bersih secara real-time.'
+                : 'Panel operasional staf kos. Fokus mengelola kamar kosong, pendaftaran penghuni baru, penagihan sewa jatuh tempo, dan pencatatan pelunasan.'}
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-400">
@@ -297,9 +321,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. KPI CARDS (PREMIUM METRIC CARDS) */}
+      {/* 2. KPI CARDS (DIFFERENTIATED FOR OWNER VS ADMIN) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* Total Kamar */}
+        {/* Card 1: Total Kamar */}
         <div
           onClick={() => setActiveMenu('rooms')}
           className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer group"
@@ -320,7 +344,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Kamar Terisi */}
+        {/* Card 2: Kamar Terisi */}
         <div
           onClick={() => {
             setSelectedStatusFilter('Terisi');
@@ -346,7 +370,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Kamar Kosong */}
+        {/* Card 3: Kamar Kosong */}
         <div
           onClick={() => {
             setSelectedStatusFilter('Kosong');
@@ -372,78 +396,152 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Pendapatan Bulan Ini */}
-        <div
-          onClick={() => setActiveMenu('payments')}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Pendapatan
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-colors">
-              <ArrowUpRight className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            {formatRupiah(stats.totalIncomeThisMonth)}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 truncate">
-            Pemasukan sewa bulan ini
-          </p>
-        </div>
-
-        {/* Pengeluaran */}
-        <div
-          onClick={() => setActiveMenu('expenses')}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Pengeluaran
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center transition-colors">
-              <ArrowDownRight className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            {formatRupiah(stats.totalExpenseThisMonth)}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 truncate">
-            Biaya operasional & kos
-          </p>
-        </div>
-
-        {/* Laba Bersih */}
-        <div
-          onClick={() => setActiveMenu('reports')}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Laba Bersih
-            </span>
+        {/* Financial or Operational Cards depending on isOwner */}
+        {isOwner ? (
+          <>
+            {/* Card 4 (Owner): Pendapatan Bulan Ini */}
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-                stats.netProfitThisMonth >= 0
-                  ? 'bg-indigo-50 text-indigo-600'
-                  : 'bg-amber-50 text-amber-600'
-              }`}
+              onClick={() => setActiveMenu('payments')}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
             >
-              <DollarSign className="w-4.5 h-4.5" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Pendapatan
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-colors">
+                  <ArrowUpRight className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-mono">
+                {formatRupiah(stats.totalIncomeThisMonth)}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 truncate">
+                Pemasukan sewa bulan ini
+              </p>
             </div>
-          </div>
-          <div
-            className={`text-lg sm:text-xl font-black tracking-tight ${
-              stats.netProfitThisMonth >= 0 ? 'text-indigo-600' : 'text-rose-600'
-            }`}
-          >
-            {formatRupiah(stats.netProfitThisMonth)}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 truncate">
-            Pemasukan - pengeluaran
-          </p>
-        </div>
+
+            {/* Card 5 (Owner): Pengeluaran */}
+            <div
+              onClick={() => setActiveMenu('expenses')}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Pengeluaran
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center transition-colors">
+                  <ArrowDownRight className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-mono">
+                {formatRupiah(stats.totalExpenseThisMonth)}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 truncate">
+                Biaya operasional & kos
+              </p>
+            </div>
+
+            {/* Card 6 (Owner): Laba Bersih */}
+            <div
+              onClick={() => setActiveMenu('reports')}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Laba Bersih
+                </span>
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                    stats.netProfitThisMonth >= 0
+                      ? 'bg-indigo-50 text-indigo-600'
+                      : 'bg-amber-50 text-amber-600'
+                  }`}
+                >
+                  <DollarSign className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div
+                className={`text-lg sm:text-xl font-black tracking-tight font-mono ${
+                  stats.netProfitThisMonth >= 0 ? 'text-indigo-600' : 'text-rose-600'
+                }`}
+              >
+                {formatRupiah(stats.netProfitThisMonth)}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 truncate">
+                Pemasukan - pengeluaran
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Card 4 (Admin): Booking & Maintenance */}
+            <div
+              onClick={() => {
+                setSelectedStatusFilter('Maintenance');
+                const el = document.getElementById('visual-rooms-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-amber-300 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Booking & Perbaikan
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-colors">
+                  <Wrench className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono">
+                {stats.bookingRooms + stats.maintenanceRooms}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 truncate">
+                {stats.bookingRooms} booking • {stats.maintenanceRooms} perawatan
+              </p>
+            </div>
+
+            {/* Card 5 (Admin): Tagihan Belum Lunas */}
+            <div
+              onClick={() => setActiveMenu('bills')}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-amber-300 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Tagihan Belum Lunas
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-colors">
+                  <Receipt className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-600 tracking-tight font-mono">
+                {stats.unpaidBillsCount}
+              </div>
+              <p className="text-xs text-amber-700 mt-1 truncate font-medium">
+                {stats.overdueBillsCount} terlambat jatuh tempo
+              </p>
+            </div>
+
+            {/* Card 6 (Admin): Penghuni Aktif */}
+            <div
+              onClick={() => setActiveMenu('tenants')}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Penghuni Aktif
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center transition-colors">
+                  <Users className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-indigo-600 tracking-tight font-mono">
+                {stats.totalTenants}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 truncate">
+                Total penyewa aktif terdata
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Overdue/Unpaid Alert Banner (If Any) */}
@@ -575,22 +673,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </button>
 
-          {/* Lihat Laporan */}
-          <button
-            id="quick-view-reports"
-            onClick={() => setActiveMenu('reports')}
-            className="p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/80 border border-slate-200/70 hover:border-indigo-200 text-left transition-all group flex flex-col justify-between"
-          >
-            <div className="w-9 h-9 rounded-xl bg-white group-hover:bg-indigo-600 text-slate-700 group-hover:text-white flex items-center justify-center shadow-xs transition-colors mb-3">
-              <BarChart3 className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-900 block">
-                Lihat Laporan
-              </span>
-              <span className="text-[11px] text-slate-500">Laba rugi & keuangan</span>
-            </div>
-          </button>
+          {/* Action 6: Owner (Lihat Laporan Keuangan) vs Admin (Database Penghuni) */}
+          {isOwner ? (
+            <button
+              id="quick-view-reports"
+              onClick={() => setActiveMenu('reports')}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/80 border border-slate-200/70 hover:border-indigo-200 text-left transition-all group flex flex-col justify-between"
+            >
+              <div className="w-9 h-9 rounded-xl bg-white group-hover:bg-indigo-600 text-slate-700 group-hover:text-white flex items-center justify-center shadow-xs transition-colors mb-3">
+                <BarChart3 className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-900 block">
+                  Laporan Keuangan
+                </span>
+                <span className="text-[11px] text-slate-500">Laba rugi & arus kas</span>
+              </div>
+            </button>
+          ) : (
+            <button
+              id="quick-view-tenants"
+              onClick={() => setActiveMenu('tenants')}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/80 border border-slate-200/70 hover:border-indigo-200 text-left transition-all group flex flex-col justify-between"
+            >
+              <div className="w-9 h-9 rounded-xl bg-white group-hover:bg-indigo-600 text-slate-700 group-hover:text-white flex items-center justify-center shadow-xs transition-colors mb-3">
+                <Users className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-900 block">
+                  Data Penghuni
+                </span>
+                <span className="text-[11px] text-slate-500">Daftar & kontak aktif</span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
@@ -837,91 +953,222 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* 5. CHARTS & RECENT BILLS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pemasukan vs Pengeluaran 6 Bulan Terakhir */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-            <div>
-              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4.5 h-4.5 text-indigo-600" />
-                Tren Keuangan (6 Bulan Terakhir)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Perbandingan pemasukan sewa vs pengeluaran operasional usaha kos
-              </p>
+        {/* Left 2 Columns: Financial Chart for Owner OR Operational Follow-Up for Admin */}
+        {isOwner ? (
+          <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <TrendingUp className="w-4.5 h-4.5 text-indigo-600" />
+                  Tren Keuangan (6 Bulan Terakhir)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Perbandingan pemasukan sewa vs pengeluaran operasional usaha kos
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-medium">
+                <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="w-3 h-3 rounded-xs bg-indigo-600"></span>
+                  Pemasukan
+                </span>
+                <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="w-3 h-3 rounded-xs bg-rose-400"></span>
+                  Pengeluaran
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-3 h-3 rounded-xs bg-indigo-600"></span>
-                Pemasukan
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-3 h-3 rounded-xs bg-rose-400"></span>
-                Pengeluaran
-              </span>
-            </div>
-          </div>
+            {/* Monthly Bar Chart */}
+            <div className="h-56 flex items-end justify-between gap-2 sm:gap-4 pt-6 border-b border-slate-100 pb-2">
+              {monthlyChartData.monthsData.map((d) => {
+                const incomeHeight = Math.max(
+                  6,
+                  Math.round((d.income / monthlyChartData.maxVal) * 100)
+                );
+                const expenseHeight = Math.max(
+                  4,
+                  Math.round((d.expense / monthlyChartData.maxVal) * 100)
+                );
 
-          {/* Monthly Bar Chart */}
-          <div className="h-56 flex items-end justify-between gap-2 sm:gap-4 pt-6 border-b border-slate-100 pb-2">
-            {monthlyChartData.monthsData.map((d) => {
-              const incomeHeight = Math.max(
-                6,
-                Math.round((d.income / monthlyChartData.maxVal) * 100)
-              );
-              const expenseHeight = Math.max(
-                4,
-                Math.round((d.expense / monthlyChartData.maxVal) * 100)
-              );
-
-              return (
-                <div
-                  key={d.key}
-                  className="flex-1 flex flex-col items-center gap-2 group h-full justify-end"
-                >
-                  <div className="w-full flex items-end justify-center gap-1 sm:gap-2 h-44 px-0.5">
-                    {/* Income Bar */}
-                    <div
-                      className="w-full max-w-[22px] bg-indigo-600 hover:bg-indigo-700 rounded-t-md transition-all relative cursor-pointer"
-                      style={{ height: `${incomeHeight}%` }}
-                      title={`Pemasukan: ${formatRupiah(d.income)}`}
-                    />
-                    {/* Expense Bar */}
-                    <div
-                      className="w-full max-w-[22px] bg-rose-400 hover:bg-rose-500 rounded-t-md transition-all relative cursor-pointer"
-                      style={{ height: `${expenseHeight}%` }}
-                      title={`Pengeluaran: ${formatRupiah(d.expense)}`}
-                    />
+                return (
+                  <div
+                    key={d.key}
+                    className="flex-1 flex flex-col items-center gap-2 group h-full justify-end"
+                  >
+                    <div className="w-full flex items-end justify-center gap-1 sm:gap-2 h-44 px-0.5">
+                      {/* Income Bar */}
+                      <div
+                        className="w-full max-w-[22px] bg-indigo-600 hover:bg-indigo-700 rounded-t-md transition-all relative cursor-pointer"
+                        style={{ height: `${incomeHeight}%` }}
+                        title={`Pemasukan: ${formatRupiah(d.income)}`}
+                      />
+                      {/* Expense Bar */}
+                      <div
+                        className="w-full max-w-[22px] bg-rose-400 hover:bg-rose-500 rounded-t-md transition-all relative cursor-pointer"
+                        style={{ height: `${expenseHeight}%` }}
+                        title={`Pengeluaran: ${formatRupiah(d.expense)}`}
+                      />
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+                      {d.label}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
-                    {d.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          <div className="pt-4 flex items-center justify-between text-xs text-slate-500">
-            <span>
-              Laba Bersih Bulan Ini:{' '}
-              <strong
-                className={
-                  stats.netProfitThisMonth >= 0
-                    ? 'text-indigo-600 font-bold'
-                    : 'text-rose-600 font-bold'
-                }
+            <div className="pt-4 flex items-center justify-between text-xs text-slate-500">
+              <span>
+                Laba Bersih Bulan Ini:{' '}
+                <strong
+                  className={
+                    stats.netProfitThisMonth >= 0
+                      ? 'text-indigo-600 font-bold'
+                      : 'text-rose-600 font-bold'
+                  }
+                >
+                  {formatRupiah(stats.netProfitThisMonth)}
+                </strong>
+              </span>
+              <button
+                onClick={() => setActiveMenu('reports')}
+                className="text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1"
               >
-                {formatRupiah(stats.netProfitThisMonth)}
-              </strong>
-            </span>
-            <button
-              onClick={() => setActiveMenu('reports')}
-              className="text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1"
-            >
-              Lihat Laporan Lengkap <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+                Lihat Laporan Lengkap <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <Receipt className="w-4.5 h-4.5 text-amber-600" />
+                    Tugas Prioritas: Tagihan Sewa Belum Lunas
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Daftar penyewa yang perlu ditagih atau dikirimi pengingat invoice sewa
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 self-start sm:self-auto">
+                  {stats.unpaidBillsCount} Tagihan Tertunda
+                </span>
+              </div>
+
+              {/* Unpaid bills list */}
+              {bills.filter((b) => b.status === 'Belum Dibayar' || b.status === 'Terlambat').length === 0 ? (
+                <div className="py-12 text-center text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-slate-800">Luar Biasa! Semua Tagihan Telah Lunas</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Tidak ada tunggakan sewa yang tertunda saat ini.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {bills
+                    .filter((b) => b.status === 'Belum Dibayar' || b.status === 'Terlambat')
+                    .slice(0, 4)
+                    .map((bill) => {
+                      const tenant = tenants.find((t) => t.id === bill.tenantId);
+                      const room = rooms.find((r) => r.id === bill.roomId);
+                      const property = properties.find((p) => p.id === bill.propertyId);
+                      const waUrl = tenant
+                        ? generateWhatsappBillingUrl({
+                            tenantPhone: tenant.whatsappNumber,
+                            tenantName: tenant.fullName,
+                            propertyName: property?.name || 'Kos',
+                            roomNumber: room?.roomNumber || 'Kamar',
+                            period: bill.period,
+                            dueDate: bill.dueDate,
+                            totalAmount: bill.totalAmount,
+                            ownerName: settings.business.ownerName,
+                            businessName: settings.business.businessName,
+                            bankName: settings.payment.bankName,
+                            accountNumber: settings.payment.accountNumber,
+                            accountHolder: settings.payment.accountHolder,
+                          })
+                        : '#';
+
+                      return (
+                        <div
+                          key={bill.id}
+                          className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-slate-50 hover:border-indigo-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                bill.status === 'Terlambat'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              <Receipt className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-900">
+                                  {tenant?.fullName || 'Penghuni'}
+                                </h4>
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-semibold font-mono">
+                                  Kamar {room?.roomNumber || '-'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                Periode: {bill.period} • Jatuh tempo: {formatDateIndo(bill.dueDate)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                            <span className="text-sm font-bold text-slate-900 font-mono">
+                              {formatRupiah(bill.totalAmount)}
+                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              {tenant?.whatsappNumber && (
+                                <a
+                                  href={waUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs"
+                                  title="Kirim Tagihan via WhatsApp"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>WA</span>
+                                </a>
+                              )}
+                              <button
+                                onClick={() => openInvoice(bill)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors shadow-2xs"
+                                title="Lihat Invoice"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>Invoice</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 border-t border-slate-100 mt-4">
+              <span className="flex items-center gap-1.5 text-slate-500">
+                <ShieldAlert className="w-4 h-4 text-indigo-500 shrink-0" />
+                <span>Mode Admin: Laporan finansial laba rugi terproteksi khusus akun Owner.</span>
+              </span>
+              <button
+                onClick={() => setActiveMenu('bills')}
+                className="text-indigo-600 hover:text-indigo-700 font-bold inline-flex items-center gap-1 self-start sm:self-auto"
+              >
+                Kelola Semua Tagihan <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Ringkasan Okupansi & Distribusi Properti */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">

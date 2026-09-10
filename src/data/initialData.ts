@@ -375,3 +375,27 @@ export const INITIAL_EXPENSES: Expense[] = [
     createdAt: '2026-08-05',
   },
 ];
+
+export const INITIAL_ADMIN_ACCOUNTS = [
+  {
+    id: 'user-owner',
+    name: 'Bapak Hendra Pratama (Owner)',
+    email: 'owner@kos.id',
+    password: 'owner123',
+    role: 'OWNER' as const,
+    phone: '081803716514',
+    status: 'Aktif' as const,
+    createdAt: '2026-01-01',
+  },
+  {
+    id: 'user-admin-1',
+    name: 'Siti Rahma (Admin Operasional)',
+    email: 'admin@kos.id',
+    password: 'admin123',
+    role: 'ADMIN' as const,
+    phone: '081803716514',
+    status: 'Aktif' as const,
+    createdAt: '2026-02-01',
+  },
+];
+

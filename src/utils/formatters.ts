@@ -66,6 +66,7 @@ export interface WhatsappBillingParams {
   dueDate: string;
   totalAmount: number;
   ownerName: string;
+  ownerPhone?: string;
   businessName?: string;
   bankName?: string;
   accountNumber?: string;
@@ -77,8 +78,9 @@ export function generateWhatsappBillingUrl(params: WhatsappBillingParams): strin
   
   const formattedDueDate = formatDateIndo(params.dueDate);
   const formattedTotal = formatRupiah(params.totalAmount);
+  const ownerContact = params.ownerPhone || '081803716514';
 
-  let message = `Halo Bapak/Ibu ${params.tenantName},
+  const message = `Halo ${params.tenantName},
 
 Kami informasikan tagihan kos:
 
@@ -90,19 +92,12 @@ Jatuh Tempo: ${formattedDueDate}
 Total Tagihan:
 ${formattedTotal}
 
-Silakan melakukan pembayaran sesuai informasi pembayaran yang tercantum pada invoice.`;
+Silakan melakukan pembayaran sesuai informasi pembayaran pada invoice.
 
-  if (params.bankName && params.accountNumber) {
-    message += `\n\nInformasi Pembayaran:
-Bank: ${params.bankName}
-No. Rekening: ${params.accountNumber}
-Atas Nama: ${params.accountHolder || params.ownerName}`;
-  }
+Terima kasih.
 
-  message += `\n\nTerima kasih.
-
-Nama Owner:
-${params.ownerName}${params.businessName ? `\n${params.businessName}` : ''}`;
+${params.ownerName}
+${ownerContact}`;
 
   const encodedMessage = encodeURIComponent(message);
   return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
